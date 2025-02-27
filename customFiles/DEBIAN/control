@@ -1,0 +1,9 @@
+Package: zen-browser
+Version: 
+Architecture: amd64
+Maintainer: Non Maintainer <noreply@example.com>
+Installed-Size: 
+Depends: libc6 (>= 2.30)
+Section: utils
+Priority: optional
+Description: Zen browser - A privacy-focused web browser
