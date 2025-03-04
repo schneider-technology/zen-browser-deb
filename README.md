@@ -1,5 +1,6 @@
 # zen-browser-deb
 TODO: remove more unneeded files?
+
 TODO: uninstaller script. The desktop file should be removed from /usr/share/applications, the rest seems to be handled.
 
 It's my first time build a Debian package, so be careful! I've only tested this in a VM, not confident enough yet to use it on a machine I'm actively using.
