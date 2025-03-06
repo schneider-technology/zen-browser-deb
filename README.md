@@ -1,4 +1,8 @@
 # zen-browser-deb
+!! DON'T USE AS OF NOW !!
+
+For some reason it only works right after the install - I'll have to investigate further on why and how that can even happen
+
 TODO: remove more unneeded files?
 
 TODO: uninstaller script. The desktop file should be removed from /usr/share/applications, the rest seems to be handled.
