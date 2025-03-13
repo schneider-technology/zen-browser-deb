@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #Check if file exists, stop if it doesn't
-if [ ! -f "zen.linux-x86_64.tar.xz" ]; then
-    echo "Error: zen.linux-x86_64.tar.xz not found"
+if [ ! -f "zen-x86_64.AppImage" ]; then
+    echo "Error: zen-x86_64.AppImage not found"
     exit 1
 fi
 
@@ -10,8 +10,10 @@ fi
 packageDirectory="zen-browser"
 binaryName="zen-browser"
 binaryDirectory="$packageDirectory/usr/bin"
+cleanAppDirectory="/usr/lib/$binaryName"
 appRootDirectory="$packageDirectory/usr/lib"
 appDirectory="$appRootDirectory/$binaryName"
+
 iconDirectory="$packageDirectory/usr/share/icons"
 desktopFileDirectory="$packageDirectory/usr/share/applications"
 debianFileDirectory="$packageDirectory/DEBIAN"
@@ -28,29 +30,43 @@ if [ -d "$packageDirectory" ]; then
 fi
 
 #Create the initial directories
+mkdir -p "$packageDirectory"
 mkdir -p "$desktopFileDirectory"
 mkdir -p "$debianFileDirectory"
 mkdir -p "$appRootDirectory"
 mkdir -p "$iconDirectory"
 mkdir -p "$binaryDirectory"
 
+
 #Extract the tarball to zen-browser directory
-echo "Extracting tarball to $appRootDirectory"
-tar -xvf zen.linux-x86_64.tar.xz -C "$appRootDirectory" || { echo "Error extracting tarball"; exit 1; }
+#echo "Extracting tarball to $appRootDirectory"
+#tar -xvf zen.linux-x86_64.tar.xz -C "$appRootDirectory" || { echo "Error extracting tarball"; exit 1; }
 
 # Check if extraction was successful
-if [ ! -d "$appRootDirectory/zen" ]; then
-    echo "Error: Extraction failed or zen directory not found in $appRootDirectory"
-    exit 1
-fi
+#if [ ! -d "$appRootDirectory/zen" ]; then
+#    echo "Error: Extraction failed or zen directory not found in $appRootDirectory"
+#    exit 1
+#fi
+
+#Extract AppImage
+echo "Extracting AppImage to $appRootDirectory"
+chmod +x zen-x86_64.AppImage
+./zen-x86_64.AppImage --appimage-extract
+
+# move and rename the extracted directory
+mv AppDir "$appDirectory"
+rm squashfs-root
+
+
 
 # List contents of the extracted directory for debugging
 echo "Contents of $appRootDirectory after extraction:"
 ls -l "$appRootDirectory"
 
+
 #move and rename zen to binaryName to avoid conflicts
 echo "Moving and renaming zen to $binaryName"
-mv "$appRootDirectory/zen" "$appDirectory"
+#exit 1
 mv "$appDirectory/zen" "$appDirectory/$binaryName"
 mv "$appDirectory/zen-bin" "$appDirectory/$binaryName-bin"
 
@@ -62,8 +78,8 @@ ln -s "../lib/$binaryName/$binaryName" "$binaryDirectory/$binaryName"
 ln -s "../lib/$binaryName/$binaryName-bin" "$binaryDirectory/$binaryName-bin"
 
 #Check the version application.ini
-applicationDirectory="$appDirectory"
-version=$(grep -oP 'Version=\K.*' "$applicationDirectory/application.ini" | head -1)
+
+version=$(grep -oP 'Version=\K.*' "$appDirectory/application.ini" | head -1)
 
 if [ -z "$version" ]; then
     echo "Error: Version not found in application.ini"
@@ -80,8 +96,8 @@ sed -i "s/Version: .*/Version: $version/" "$debianFileDirectory/control"
 cp "customFiles/$binaryName.desktop" "$desktopFileDirectory/$binaryName.desktop"
 sed -i "s/Version=.*/Version=$version/" "$desktopFileDirectory/$binaryName.desktop"
 
-#replace binaryName in the desktop file
-sed -i "s|Exec=.*|Exec=/usr/lib/$binaryName/$binaryName %U|" "$desktopFileDirectory/$binaryName.desktop"
+#replace "REPLACEME" with the binarypath in the desktop file
+sed -i "s|REPLACEME|$cleanAppDirectory/$binaryName|" "$desktopFileDirectory/$binaryName.desktop"
 
 #Check which sizes are available and create the directories and rename the files
 for each in "$appDirectory/browser/chrome/icons/default/"*; do
@@ -92,20 +108,28 @@ done
 
 #Delete old icon directory
 rm -rf "$appDirectory/browser/chrome/icons/default"
+rm -rf "$appDirectory/usr/"
 
 #Delete the updater since debian packages are updated through apt
-#rm "$appDirectory/updater"
-#rm "$appDirectory/updater.ini"
+rm "$appDirectory/updater"
+rm "$appDirectory/updater.ini"
+rm "$appDirectory/update-settings.ini"
+rm "$appDirectory/.DirIcon"
+rm "$appDirectory/zen.png"
+rm "$appDirectory/zen.desktop"
+
 
 #Create the deb package
-dpkg-deb --build "$packageDirectory"
+dpkg-deb --root-owner-group --build "$packageDirectory" "${binaryName}_${version}.deb"
 
 # Check if the deb package was created successfully
-if [ ! -f "$packageDirectory.deb" ]; then
+if [ ! -f "${binaryName}_${version}.deb" ]; then
     echo "Error: Failed to create deb package"
     exit 1
 fi
 
+echo created "${binaryName}_${version}.deb"
+
 #Rename the deb package
-echo "Renaming to $binaryName_$version.deb"
-mv "$packageDirectory.deb" "${binaryName}_${version}.deb"
+#echo "Renaming to $binaryName_$version.deb"
+#mv "$packageDirectory.deb" "${binaryName}_${version}.deb"
